@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStore } from '@/store/appStore';
 import { useAuthStore } from '@/store/authStore';
-import { getUserPrefsContext } from '@/lib/user-prefs';
+import { getUserPrefsContext, syncPrefsFromCloud } from '@/lib/user-prefs';
 import type { BrandMemory, LearningEntry } from '@/types/spark';
 
 const DEVICE_ID = 'default';
