@@ -357,7 +357,10 @@ export default function SparkChat({ getContext }: { getContext?: () => string })
         setContents([newItem, ...currentContents]);
         setSelectedContentId(newItem.id);
 
-        // Update message with content card
+        // Generate context-aware suggestions
+        const suggestions = generateSuggestions(parsed.title, parsed.content, parsed.tags);
+
+        // Update message with content card and suggestions
         const msgs = useAppStore.getState().messages;
         const updated = msgs.map(m =>
           m.id === statusId
@@ -365,6 +368,17 @@ export default function SparkChat({ getContext }: { getContext?: () => string })
             : m
         );
         useAppStore.setState({ messages: updated });
+
+        // Add a follow-up message with suggestions
+        const suggestId = (Date.now() + 2).toString();
+        addMessage({
+          id: suggestId,
+          role: 'assistant',
+          content: '📋 我分析了这篇内容，以下是一些优化建议：',
+          timestamp: new Date().toISOString(),
+          choices: suggestions,
+        });
+
         setIsGenerating(false);
       },
       onError: (errMsg) => {
