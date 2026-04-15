@@ -215,6 +215,25 @@ function MessageBubble({ msg, onSend, onCardAction }: {
   );
 }
 
+// Generate context-aware suggestions based on article content
+function generateSuggestions(title: string, content: string, tags?: string[]): ChoiceOption[] {
+  const suggestions: ChoiceOption[] = [
+    { id: 's1', label: '帮我润色一下这篇文章', emoji: '✨' },
+    { id: 's2', label: `给「${title.substring(0, 10)}」配一张封面图`, emoji: '🎨' },
+    { id: 's3', label: '换一种更活泼的风格重写', emoji: '🔄' },
+  ];
+  if (content.length < 200) {
+    suggestions.push({ id: 's4', label: '内容太短了，帮我扩写一下', emoji: '📝' });
+  }
+  if (!tags || tags.length < 3) {
+    suggestions.push({ id: 's5', label: '帮我补充更多标签', emoji: '🏷️' });
+  }
+  if (content.length > 500) {
+    suggestions.push({ id: 's6', label: '太长了，帮我精简到300字以内', emoji: '✂️' });
+  }
+  return suggestions.slice(0, 4);
+}
+
 export default function SparkChat({ getContext }: { getContext?: () => string }) {
   const {
     messages, addMessage, isGenerating, setIsGenerating,
