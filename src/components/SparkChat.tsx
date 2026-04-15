@@ -170,7 +170,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-export default function SparkChat() {
+export default function SparkChat({ getContext }: { getContext?: () => string }) {
   const {
     messages, addMessage, isGenerating, setIsGenerating,
     setContents, setSelectedContentId,
@@ -188,11 +188,12 @@ export default function SparkChat() {
   }, [messages, isGenerating]);
 
   const getBrandContext = useCallback(() => {
+    if (getContext) return getContext();
     const store = useAppStore.getState();
     if (!store.brand || !store.brand.initialized) return '';
     const b = store.brand;
     return `\n品牌名: ${b.name}\n行业: ${b.industry}\n主营: ${b.mainBusiness}\n目标客户: ${b.targetCustomer}\n语气: ${b.toneOfVoice}\n关键词: ${b.keywords.join(', ')}`;
-  }, []);
+  }, [getContext]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isGenerating) return;

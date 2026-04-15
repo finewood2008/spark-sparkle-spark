@@ -4,11 +4,13 @@ import SparkChat from './SparkChat';
 import DraftDrawer from './DraftDrawer';
 import SparkProfile from './SparkProfile';
 import { useAppStore } from '../store/appStore';
+import { useMemorySync } from '../hooks/useMemorySync';
 
 export default function ChatLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const { setActiveTab } = useAppStore();
+  const { getFullContext } = useMemorySync();
 
   if (showProfile) {
     return <SparkProfile onBack={() => setShowProfile(false)} />;
@@ -48,8 +50,8 @@ export default function ChatLayout() {
         </div>
       </header>
 
-      {/* Chat */}
-      <SparkChat />
+      {/* Chat with memory context */}
+      <SparkChat getContext={getFullContext} />
 
       {/* Draft drawer */}
       <DraftDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
