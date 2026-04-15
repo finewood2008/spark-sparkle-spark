@@ -528,7 +528,7 @@ export default function SchedulePage() {
 
     saveLogs([...newLogs.map(l => ({ ...l })), ...loadLogs()]);
     setGenerating(false);
-  };
+  }, [generating, config, getBrandContext, contents, setContents, setSelectedContentId]);
 
 
   const totalGenerated = logs.filter(l => l.status === 'success').length;
