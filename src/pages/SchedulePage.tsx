@@ -348,7 +348,7 @@ function ExecutionLog({ logs }: { logs: ScheduleLogEntry[] }) {
 
 // --- Main Page ---
 export default function SchedulePage() {
-  const { contents, setContents, setSelectedContentId, setActiveTab, brand } = useAppStore();
+  const { contents, setContents, setSelectedContentId, brand } = useAppStore();
   const [config, setConfig] = useState<ScheduleConfig>(loadSchedule);
   const [logs, setLogs] = useState<ScheduleLogEntry[]>(loadLogs);
   const [generating, setGenerating] = useState(false);
