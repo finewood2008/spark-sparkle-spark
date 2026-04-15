@@ -347,17 +347,33 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
             className="w-full h-48 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          {/* Regenerate button overlay */}
-          <button
-            onClick={handleGenerateCover}
-            disabled={coverLoading}
-            className="absolute bottom-2 right-2 flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors disabled:opacity-50"
-          >
-            {coverLoading ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
-            换配图
-          </button>
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors"
+            >
+              <ImageUp size={11} /> 上传
+            </button>
+            <button
+              onClick={handleGenerateCover}
+              disabled={coverLoading}
+              className="flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors disabled:opacity-50"
+            >
+              {coverLoading ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
+              AI换图
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleUploadCover}
+        className="hidden"
+      />
 
       {/* Title */}
       {editing ? (
