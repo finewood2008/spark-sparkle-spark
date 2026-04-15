@@ -2,17 +2,26 @@ import { useState } from 'react';
 import { FileText, Settings } from 'lucide-react';
 import SparkChat from './SparkChat';
 import DraftDrawer from './DraftDrawer';
+import SparkProfile from './SparkProfile';
 import { useAppStore } from '../store/appStore';
 
 export default function ChatLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const { setActiveTab } = useAppStore();
+
+  if (showProfile) {
+    return <SparkProfile onBack={() => setShowProfile(false)} />;
+  }
 
   return (
     <div className="h-screen flex flex-col bg-[#FAFAF8]">
       {/* Top nav */}
       <header className="flex items-center justify-between px-5 py-3 border-b border-[#EEEDEB]">
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => setShowProfile(true)}
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+        >
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #FF8C42, #FF6B1A)' }}
@@ -20,7 +29,7 @@ export default function ChatLayout() {
             <span className="text-[14px]">✨</span>
           </div>
           <span className="text-[16px] font-semibold text-[#333]">火花</span>
-        </div>
+        </button>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setDrawerOpen(true)}

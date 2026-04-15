@@ -23,6 +23,7 @@ export interface ChatMessage {
   options?: OptionCard[];
   image?: string;
   contentItem?: ContentItem;
+  reportData?: Record<string, unknown>;
 }
 
 export type ContentStatus = 'draft' | 'reviewing' | 'approved' | 'published' | 'rejected';
