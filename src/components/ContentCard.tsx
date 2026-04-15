@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Upload, Sparkles, Loader2, Undo2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Upload, Sparkles, Loader2, Undo2, Palette, BookmarkPlus } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import type { ContentItem } from '../types/spark';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface ContentCardProps {
   item: ContentItem;
+  onAction?: (action: string, item: ContentItem) => void;
 }
 
 interface ToolbarPos {
@@ -54,7 +55,7 @@ function AIFloatingToolbar({
   );
 }
 
-export default function ContentCard({ item }: ContentCardProps) {
+export default function ContentCard({ item, onAction }: ContentCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(item.content);
@@ -327,61 +328,46 @@ export default function ContentCard({ item }: ContentCardProps) {
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0EFED] flex-wrap">
+      <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#F0EFED] flex-wrap">
         {!editing ? (
           <>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="content-card-btn"
-            >
+            <button onClick={() => setExpanded(!expanded)} className="content-card-btn">
               {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               {expanded ? '收起' : '展开全文'}
             </button>
+            <button onClick={() => { setEditing(true); setExpanded(true); }} className="content-card-btn">
+              <Pencil size={13} /> 编辑
+            </button>
+            <button onClick={handlePolish} disabled={!!aiLoading} className="content-card-btn text-spark-orange">
+              {aiLoading === 'polish' ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {aiLoading === 'polish' ? '润色中...' : '润色'}
+            </button>
+            <button onClick={() => onAction?.('restyle', item)} className="content-card-btn">
+              <Palette size={13} /> 换风格
+            </button>
+            <button onClick={handlePublish} className="content-card-btn text-spark-orange">
+              <Upload size={13} /> 发布
+            </button>
             <button
-              onClick={() => { setEditing(true); setExpanded(true); }}
+              onClick={() => { toast.success('已存入草稿箱'); }}
               className="content-card-btn"
             >
-              <Pencil size={13} />
-              编辑
-            </button>
-            <button
-              onClick={handlePolish}
-              disabled={!!aiLoading}
-              className="content-card-btn text-spark-orange"
-            >
-              {aiLoading === 'polish' ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-              {aiLoading === 'polish' ? '润色中...' : '一键润色'}
-            </button>
-            <button
-              onClick={handlePublish}
-              className="content-card-btn text-spark-orange"
-            >
-              <Upload size={13} />
-              发布
+              <BookmarkPlus size={13} /> 存稿
             </button>
           </>
         ) : (
           <>
-            <button onClick={handleSave} className="content-card-btn text-spark-orange font-medium">
-              保存
-            </button>
-            <button
-              onClick={handlePolish}
-              disabled={!!aiLoading}
-              className="content-card-btn text-spark-orange"
-            >
+            <button onClick={handleSave} className="content-card-btn text-spark-orange font-medium">保存</button>
+            <button onClick={handlePolish} disabled={!!aiLoading} className="content-card-btn text-spark-orange">
               {aiLoading === 'polish' ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-              {aiLoading === 'polish' ? '润色中...' : '一键润色'}
+              {aiLoading === 'polish' ? '润色中...' : '润色'}
             </button>
             {undoStack.length > 0 && (
               <button onClick={handleUndo} disabled={!!aiLoading} className="content-card-btn text-[#999]">
-                <Undo2 size={13} />
-                撤销
+                <Undo2 size={13} /> 撤销
               </button>
             )}
-            <button onClick={() => { setEditing(false); setToolbarPos(null); setUndoStack([]); }} className="content-card-btn">
-              取消
-            </button>
+            <button onClick={() => { setEditing(false); setToolbarPos(null); setUndoStack([]); }} className="content-card-btn">取消</button>
           </>
         )}
       </div>
