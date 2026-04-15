@@ -241,9 +241,10 @@ function AccountPage() {
 
             {/* Save */}
             <button
-              onClick={() => {
-                saveUserPrefs(prefs);
+              onClick={async () => {
+                await saveUserPrefs(prefs);
                 setPrefsSaved(true);
+                toast.success('偏好已保存并同步到云端');
                 setTimeout(() => setPrefsSaved(false), 2000);
               }}
               className="spark-btn-primary w-full text-sm gap-1.5"
