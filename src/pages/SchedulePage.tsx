@@ -501,6 +501,34 @@ export default function SchedulePage() {
     setGenerating(false);
   }, [generating, config, getBrandContext, contents, setContents, setSelectedContentId]);
 
+  // --- Auto-trigger timer ---
+  const lastTriggeredRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!config.enabled || config.topics.length === 0) return;
+
+    const checkTimer = () => {
+      const now = new Date();
+      const dow = now.getDay();
+      const shouldRunToday = config.frequency === 'daily' || config.daysOfWeek.includes(dow);
+      if (!shouldRunToday) return;
+
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      for (const scheduledTime of (config.scheduledTimes || ['09:00'])) {
+        const triggerKey = `${now.toDateString()}-${scheduledTime}`;
+        if (currentTime === scheduledTime && lastTriggeredRef.current !== triggerKey) {
+          lastTriggeredRef.current = triggerKey;
+          handleRunOnce();
+          break;
+        }
+      }
+    };
+
+    const interval = setInterval(checkTimer, 30_000);
+    checkTimer();
+    return () => clearInterval(interval);
+  }, [config.enabled, config.frequency, config.daysOfWeek, config.topics.length, config.scheduledTimes, handleRunOnce]);
 
   const totalGenerated = logs.filter(l => l.status === 'success').length;
 
