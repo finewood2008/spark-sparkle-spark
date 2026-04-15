@@ -4,6 +4,10 @@ import { useAppStore } from '../store/appStore';
 import type { ContentItem } from '../types/spark';
 import { toast } from 'sonner';
 import { streamEdit } from '../lib/ai-stream';
+import type { LearningEntry } from '../types/spark';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface ContentCardProps {
   item: ContentItem;
@@ -55,11 +59,12 @@ export default function ContentCard({ item }: ContentCardProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(item.content);
   const [editTitle, setEditTitle] = useState(item.title);
+  const [originalContent, setOriginalContent] = useState(item.content);
   const [toolbarPos, setToolbarPos] = useState<ToolbarPos | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<string[]>([]);
-  const { contents, setContents } = useAppStore();
+  const { contents, setContents, learnings, setLearnings, addMessage } = useAppStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
