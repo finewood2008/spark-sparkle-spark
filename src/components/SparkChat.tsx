@@ -4,6 +4,7 @@ import { useAppStore } from '../store/appStore';
 import { streamChat } from '../lib/ai-stream';
 import type { ChatMessage, ContentItem } from '../types/spark';
 import ContentCard from './ContentCard';
+import DataReportCard, { type ReportData } from './DataReportCard';
 
 function SparkAvatar({ size = 32 }: { size?: number }) {
   return (
