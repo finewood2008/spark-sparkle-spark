@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Upload, Sparkles, Loader2, Undo2, Palette, BookmarkPlus, ImagePlus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Upload, Sparkles, Loader2, Undo2, Palette, BookmarkPlus, ImagePlus, ImageUp } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import type { ContentItem } from '../types/spark';
 import { toast } from 'sonner';
@@ -69,6 +69,33 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
   const { contents, setContents, learnings, setLearnings, addMessage } = useAppStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadCover = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('图片不能超过 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const updated = contents.map(c =>
+        c.id === item.id
+          ? { ...c, coverImage: dataUrl, updatedAt: new Date().toISOString() }
+          : c
+      );
+      setContents(updated);
+      toast.success('封面已更新');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const previewText = item.content.split('\n').slice(0, 3).join('\n');
 
@@ -320,17 +347,33 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
             className="w-full h-48 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          {/* Regenerate button overlay */}
-          <button
-            onClick={handleGenerateCover}
-            disabled={coverLoading}
-            className="absolute bottom-2 right-2 flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors disabled:opacity-50"
-          >
-            {coverLoading ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
-            换配图
-          </button>
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors"
+            >
+              <ImageUp size={11} /> 上传
+            </button>
+            <button
+              onClick={handleGenerateCover}
+              disabled={coverLoading}
+              className="flex items-center gap-1 text-[11px] text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 hover:bg-black/60 transition-colors disabled:opacity-50"
+            >
+              {coverLoading ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
+              AI换图
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleUploadCover}
+        className="hidden"
+      />
 
       {/* Title */}
       {editing ? (
@@ -403,7 +446,13 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
               className="content-card-btn text-spark-orange"
             >
               {coverLoading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-              {coverLoading ? '生成中...' : item.coverImage ? '换配图' : '生成配图'}
+              {coverLoading ? '生成中...' : 'AI配图'}
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="content-card-btn"
+            >
+              <ImageUp size={13} /> 上传封面
             </button>
             <button onClick={() => onAction?.('restyle', item)} className="content-card-btn">
               <Palette size={13} /> 换风格
@@ -431,7 +480,13 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
               className="content-card-btn text-spark-orange"
             >
               {coverLoading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-              {coverLoading ? '生成中...' : '配图'}
+              {coverLoading ? '生成中...' : 'AI配图'}
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="content-card-btn"
+            >
+              <ImageUp size={13} /> 上传
             </button>
             {undoStack.length > 0 && (
               <button onClick={handleUndo} disabled={!!aiLoading} className="content-card-btn text-[#999]">
