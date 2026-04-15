@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Trash2, Plus, X } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Cloud, Lock, HardDrive, Monitor, Brain, FileSearch, BarChart3, Download } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import type { LearningEntry } from '../types/spark';
 import {
@@ -125,10 +125,19 @@ export default function SparkProfile({ open, onOpenChange }: SparkProfileProps) 
     );
   };
 
+  // Locked feature items for the deep memory teaser
+  const lockedFeatures = [
+    { icon: FileSearch, label: '本地文件知识库映射' },
+    { icon: BarChart3, label: '历史高赞内容自动分析模型' },
+    { icon: Brain, label: '深度用户画像学习引擎' },
+    { icon: HardDrive, label: '本地素材库智能关联' },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[#FAFAF8] border-orange-100">
-        <DialogHeader className="text-center pb-2">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[#FAFAF8] border-orange-100 p-0">
+        {/* Header */}
+        <DialogHeader className="text-center pt-6 px-6 pb-2">
           <div className="flex justify-center mb-3">
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -143,8 +152,16 @@ export default function SparkProfile({ open, onOpenChange }: SparkProfileProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 mt-2">
-          {/* Style section */}
+        {/* Cloud mode banner */}
+        <div className="mx-6 mt-1 mb-3 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#F0F4F8] border border-[#E2E8F0]">
+          <Cloud size={16} className="text-[#94A3B8] shrink-0" />
+          <p className="text-[12px] text-[#64748B] leading-relaxed">
+            当前为<span className="font-medium text-[#475569]">轻量记忆模式（云端）</span>。火花仅记录了基础的风格偏好。
+          </p>
+        </div>
+
+        {/* Memory entries */}
+        <div className="space-y-5 px-6">
           {styleEntries.length > 0 && (
             <div>
               <h3 className="text-[13px] font-semibold text-[#999] uppercase tracking-wider mb-2 px-1">
@@ -156,7 +173,6 @@ export default function SparkProfile({ open, onOpenChange }: SparkProfileProps) 
             </div>
           )}
 
-          {/* Business section */}
           {businessEntries.length > 0 && (
             <div>
               <h3 className="text-[13px] font-semibold text-[#999] uppercase tracking-wider mb-2 px-1">
@@ -176,7 +192,7 @@ export default function SparkProfile({ open, onOpenChange }: SparkProfileProps) 
         </div>
 
         {/* Add new */}
-        <div className="mt-4 pb-2">
+        <div className="mt-4 px-6">
           {addingNew ? (
             <div className="flex items-center gap-2 rounded-xl px-4 py-3 border border-dashed border-orange-300 bg-white">
               <input
@@ -201,6 +217,52 @@ export default function SparkProfile({ open, onOpenChange }: SparkProfileProps) 
               告诉火花更多
             </button>
           )}
+        </div>
+
+        {/* Deep memory locked section */}
+        <div className="mt-6 mx-6 mb-6 relative rounded-2xl overflow-hidden border border-[#E2E8F0]">
+          {/* Blurred background feature list */}
+          <div className="px-5 pt-5 pb-16 space-y-3 select-none" style={{ filter: 'blur(2px)', opacity: 0.45 }}>
+            {lockedFeatures.map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 bg-white">
+                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <Icon size={16} className="text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[14px] text-[#555] font-medium">{label}</p>
+                  <p className="text-[11px] text-[#BBB]">桌面版专属功能</p>
+                </div>
+                <Lock size={14} className="text-[#CCC]" />
+              </div>
+            ))}
+          </div>
+
+          {/* Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-transparent via-[#FAFAF8]/80 to-[#FAFAF8]/95 px-6">
+            {/* Icon cluster */}
+            <div className="flex items-center gap-1.5 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <Monitor size={20} className="text-orange-500" />
+              </div>
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-300" />
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <Brain size={20} className="text-orange-500" />
+              </div>
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-300" />
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <HardDrive size={20} className="text-orange-500" />
+              </div>
+            </div>
+
+            <p className="text-[13px] text-[#666] text-center leading-relaxed mb-4 max-w-[280px]">
+              开启<span className="font-semibold text-[#333]">深层本地记忆系统</span>，火花将通过你的本地硬盘资料完成终极进化。
+            </p>
+
+            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white text-[14px] font-medium shadow-md shadow-orange-200/50 hover:shadow-lg hover:shadow-orange-200/60 hover:brightness-105 transition-all">
+              <Download size={16} />
+              下载桌面版开启
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
