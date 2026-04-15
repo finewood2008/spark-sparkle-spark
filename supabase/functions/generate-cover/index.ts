@@ -16,12 +16,26 @@ serve(async (req) => {
     const AIPAIBOX_KEY = Deno.env.get("AIPAIBOX_API_KEY");
     if (!AIPAIBOX_KEY) throw new Error("AIPAIBOX_API_KEY is not configured");
 
-    const platformName =
-      platform === "xiaohongshu" ? "小红书" :
-      platform === "wechat" ? "微信公众号" :
-      platform === "douyin" ? "抖音" : "社交媒体";
+    // Platform-specific prompt templates
+    const platformPrompts: Record<string, { aspect: string; vibe: string }> = {
+      xiaohongshu: {
+        aspect: "3:4 vertical portrait orientation",
+        vibe: "Xiaohongshu aesthetic: bright and airy natural lighting, warm sunny tones, soft pastel color palette, lifestyle photography feel, cozy and inviting atmosphere, slightly dreamy with gentle bokeh, Instagram-worthy composition, clean minimalist flat-lay or close-up details, natural textures like linen/wood/flowers"
+      },
+      wechat: {
+        aspect: "16:9 horizontal landscape orientation",
+        vibe: "WeChat article style: professional yet approachable, clean editorial layout feel, balanced warm tones, sophisticated modern photography, subtle gradients, business-casual aesthetic"
+      },
+      douyin: {
+        aspect: "9:16 vertical full-screen orientation",
+        vibe: "Douyin/TikTok style: bold vibrant colors, high contrast, eye-catching dynamic composition, trendy pop culture aesthetic, energetic and youthful feel, strong visual impact"
+      },
+    };
 
-    const prompt = `Generate an image: A beautiful cover photo for a ${platformName} social media article titled "${title}". ${(content || "").substring(0, 200)}. Style: ${style || "Modern, clean, vibrant colors, professional photography style"}. Do NOT include any text or letters in the image. Clean composition, harmonious colors, visually striking hero image.`;
+    const platformConfig = platformPrompts[platform] || platformPrompts.xiaohongshu;
+    const contentSnippet = (content || "").substring(0, 150).replace(/[#\n]/g, " ").trim();
+
+    const prompt = `Generate a single photographic image in ${platformConfig.aspect}. Topic: "${title}". Context: ${contentSnippet}. Visual style: ${style || platformConfig.vibe}. CRITICAL RULES: Absolutely NO text, NO letters, NO words, NO watermarks, NO logos anywhere in the image. Pure visual imagery only. The image should feel like a real photograph taken by a lifestyle blogger.`;
 
     console.log("Calling aipaibox with gemini-3.1-flash-image-preview for image generation");
 
