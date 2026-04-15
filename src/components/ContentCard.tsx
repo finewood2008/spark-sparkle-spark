@@ -55,7 +55,10 @@ function AIFloatingToolbar({
   );
 }
 
-export default function ContentCard({ item, onAction }: ContentCardProps) {
+export default function ContentCard({ item: itemProp, onAction }: ContentCardProps) {
+  const { contents, setContents, learnings, setLearnings, addMessage } = useAppStore();
+  // Use live item from store if available, fall back to prop
+  const item = contents.find(c => c.id === itemProp.id) || itemProp;
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(item.content);
@@ -67,7 +70,6 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [coverLoading, setCoverLoading] = useState(false);
   const [titleLoading, setTitleLoading] = useState(false);
-  const { contents, setContents, learnings, setLearnings, addMessage } = useAppStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
