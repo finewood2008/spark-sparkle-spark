@@ -59,6 +59,7 @@ export interface ScheduleConfig {
   topics: string[];
   style: string;
   postsPerDay: number;
+  scheduledTimes: string[];
   nextRunAt?: string;
 }
 

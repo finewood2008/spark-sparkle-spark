@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
 import { loadSettings } from '../lib/settings';
 import { generateContent } from '../functions/generate.functions';
@@ -54,6 +54,7 @@ function loadSchedule(): ScheduleConfig {
     topics: [],
     style: '',
     postsPerDay: 1,
+    scheduledTimes: ['09:00'],
   };
 }
 
@@ -242,6 +243,46 @@ function ScheduleConfigForm({
           placeholder="如：专业严谨、轻松幽默、清新文艺..."
         />
       </div>
+
+      {/* Scheduled Times */}
+      <div>
+        <label className="text-xs font-medium text-spark-gray-500 mb-2 block flex items-center gap-1.5">
+          <Clock size={13} /> 定时发布时间
+        </label>
+        <div className="space-y-2">
+          {(config.scheduledTimes || ['09:00']).map((time, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => {
+                  const times = [...(config.scheduledTimes || ['09:00'])];
+                  times[idx] = e.target.value;
+                  onChange({ ...config, scheduledTimes: times });
+                }}
+                className="spark-input w-auto"
+              />
+              {(config.scheduledTimes || []).length > 1 && (
+                <button
+                  onClick={() => onChange({ ...config, scheduledTimes: (config.scheduledTimes || []).filter((_, i) => i !== idx) })}
+                  className="text-spark-gray-400 hover:text-destructive"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+          {(config.scheduledTimes || []).length < 5 && (
+            <button
+              onClick={() => onChange({ ...config, scheduledTimes: [...(config.scheduledTimes || ['09:00']), '12:00'] })}
+              className="text-xs text-spark-orange hover:underline flex items-center gap-1"
+            >
+              <Plus size={12} /> 添加时间点
+            </button>
+          )}
+        </div>
+        <p className="text-[10px] text-spark-gray-300 mt-1">页面需保持打开，定时器才会触发自动生成</p>
+      </div>
     </div>
   );
 }
@@ -267,8 +308,11 @@ function ScheduleTimeline({ config }: { config: ScheduleConfig }) {
             ? config.topics[topicIdx % config.topics.length]
             : '待定主题';
           topicIdx++;
+          const times = config.scheduledTimes || ['09:00'];
+          const timeStr = times[i % times.length] || '09:00';
+          const [h, m] = timeStr.split(':').map(Number);
           const postDate = new Date(date);
-          postDate.setHours(9 + i * 3, 0, 0, 0);
+          postDate.setHours(h, m, 0, 0);
           dates.push({ date: postDate, platform, topic });
         }
       }
@@ -367,7 +411,7 @@ export default function SchedulePage() {
     return `\n品牌名: ${brand.name}\n行业: ${brand.industry}\n主营: ${brand.mainBusiness}\n语气: ${brand.toneOfVoice}\n关键词: ${brand.keywords.join(', ')}\n禁用词: ${brand.tabooWords.join(', ')}`;
   }, [brand]);
 
-  const handleRunOnce = async () => {
+  const handleRunOnce = useCallback(async () => {
     if (generating) return;
     if (config.topics.length === 0) {
       alert('请先添加至少一个主题');
@@ -458,8 +502,36 @@ export default function SchedulePage() {
 
     saveLogs([...newLogs.map(l => ({ ...l })), ...loadLogs()]);
     setGenerating(false);
-  };
+  }, [generating, config, getBrandContext, contents, setContents, setSelectedContentId]);
 
+  // --- Auto-trigger timer ---
+  const lastTriggeredRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!config.enabled || config.topics.length === 0) return;
+
+    const checkTimer = () => {
+      const now = new Date();
+      const dow = now.getDay();
+      const shouldRunToday = config.frequency === 'daily' || config.daysOfWeek.includes(dow);
+      if (!shouldRunToday) return;
+
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      for (const scheduledTime of (config.scheduledTimes || ['09:00'])) {
+        const triggerKey = `${now.toDateString()}-${scheduledTime}`;
+        if (currentTime === scheduledTime && lastTriggeredRef.current !== triggerKey) {
+          lastTriggeredRef.current = triggerKey;
+          handleRunOnce();
+          break;
+        }
+      }
+    };
+
+    const interval = setInterval(checkTimer, 30_000);
+    checkTimer();
+    return () => clearInterval(interval);
+  }, [config.enabled, config.frequency, config.daysOfWeek, config.topics.length, config.scheduledTimes, handleRunOnce]);
 
   const totalGenerated = logs.filter(l => l.status === 'success').length;
 
