@@ -416,7 +416,6 @@ export default function SchedulePage() {
       if (!shouldRunToday) return;
 
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      const todayKey = `${now.toDateString()}-${currentTime}`;
 
       for (const scheduledTime of (config.scheduledTimes || ['09:00'])) {
         const triggerKey = `${now.toDateString()}-${scheduledTime}`;
