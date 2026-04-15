@@ -316,6 +316,7 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
   };
 
   const handleSave = () => {
+    const updated = contents.map(c =>
       c.id === item.id
         ? { ...c, title: editTitle, content: editContent, updatedAt: new Date().toISOString() }
         : c
