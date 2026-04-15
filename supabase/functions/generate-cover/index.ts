@@ -12,36 +12,27 @@ serve(async (req) => {
 
   try {
     const { title, content, platform, style } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (!GEMINI_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
 
     const platformName =
       platform === "xiaohongshu" ? "小红书" :
       platform === "wechat" ? "微信公众号" :
       platform === "douyin" ? "抖音" : "社交媒体";
 
-    const prompt = `Generate a beautiful cover image for a ${platformName} social media article.
+    const prompt = `Generate an image: A beautiful cover photo for a ${platformName} social media article titled "${title}". ${(content || "").substring(0, 150)}. Style: ${style || "Modern, clean, vibrant colors, professional photography style"}. Do NOT include any text or letters in the image. Clean composition, harmonious colors, visually striking hero image.`;
 
-Title: ${title}
-Content summary: ${(content || "").substring(0, 200)}
+    // Use gemini-2.5-flash-image (Nano Banana) for image generation
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_KEY}`;
 
-Requirements:
-- Style: ${style || "Modern, clean, vibrant colors, suitable for social media"}
-- Visually striking, suitable as a hero/cover image
-- Do NOT include any text or words in the image
-- Clean composition, harmonious colors
-- Square or vertical aspect ratio suitable for ${platformName}`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
       }),
     });
 
@@ -50,12 +41,6 @@ Requirements:
         return new Response(
           JSON.stringify({ error: "请求过于频繁，请稍后再试" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI 额度不足，请添加使用额度" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const t = await response.text();
@@ -67,10 +52,17 @@ Requirements:
     }
 
     const result = await response.json();
-    const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const text = result.choices?.[0]?.message?.content || "";
+    const parts = result.candidates?.[0]?.content?.parts || [];
+    let imageUrl = "";
+
+    for (const part of parts) {
+      if (part.inlineData) {
+        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+    }
 
     if (!imageUrl) {
+      console.error("No image in response:", JSON.stringify(result).substring(0, 500));
       return new Response(
         JSON.stringify({ error: "未能生成图片，请重试" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -78,7 +70,7 @@ Requirements:
     }
 
     return new Response(
-      JSON.stringify({ imageUrl, description: text }),
+      JSON.stringify({ imageUrl, description: "" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
