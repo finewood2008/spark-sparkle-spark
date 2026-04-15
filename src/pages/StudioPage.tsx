@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAppStore } from '../../store/appStore';
-import type { ContentItem, Platform } from '../../types/spark';
-import { Image as ImageIcon, Save, Smartphone, Monitor, RefreshCw, Sparkles, Plus } from 'lucide-react';
+import { useAppStore } from '../store/appStore';
+import type { ContentItem, Platform } from '../types/spark';
+import { Image as ImageIcon, Smartphone, Monitor, RefreshCw, Sparkles, Plus } from 'lucide-react';
 
 interface DraftData {
   id: string;
