@@ -20,22 +20,19 @@ serve(async (req) => {
       platform === "wechat" ? "微信公众号" :
       platform === "douyin" ? "抖音" : "社交媒体";
 
-    const prompt = `Generate a beautiful cover image for a ${platformName} social media article.
-Title: ${title}
-Content summary: ${(content || "").substring(0, 200)}
-Style: ${style || "Modern, clean, vibrant colors, suitable for social media"}
-Do NOT include any text or words in the image. Clean composition, harmonious colors.`;
+    const prompt = `A beautiful cover image for a social media article titled "${title}". ${(content || "").substring(0, 150)}. Style: ${style || "Modern, clean, vibrant colors"}. No text in the image. Clean composition, harmonious colors, visually striking.`;
 
-    // Use native Gemini API with imagen-3.0-generate for image generation
+    // Use Imagen 3 via Gemini API
     const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_KEY}`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: "1:1",
         },
       }),
     });
@@ -49,6 +46,54 @@ Do NOT include any text or words in the image. Clean composition, harmonious col
       }
       const t = await response.text();
       console.error("Image gen error:", response.status, t);
+
+      // Fallback: try gemini-2.0-flash with generateContent
+      console.log("Falling back to gemini-2.0-flash generateContent...");
+      return await tryGeminiFlash(GEMINI_KEY, prompt, corsHeaders);
+    }
+
+    const result = await response.json();
+    const predictions = result.predictions || [];
+
+    if (predictions.length === 0 || !predictions[0].bytesBase64Encoded) {
+      return new Response(
+        JSON.stringify({ error: "未能生成图片，请重试" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const imageUrl = `data:image/png;base64,${predictions[0].bytesBase64Encoded}`;
+
+    return new Response(
+      JSON.stringify({ imageUrl, description: "" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("generate-cover error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "未知错误" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+async function tryGeminiFlash(apiKey: string, prompt: string, corsHeaders: Record<string, string>) {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const t = await response.text();
+      console.error("Gemini flash fallback error:", response.status, t);
       return new Response(
         JSON.stringify({ error: `图片生成失败 (${response.status})` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -56,18 +101,12 @@ Do NOT include any text or words in the image. Clean composition, harmonious col
     }
 
     const result = await response.json();
-    
-    // Extract image from native Gemini response
     const parts = result.candidates?.[0]?.content?.parts || [];
     let imageUrl = "";
-    let description = "";
 
     for (const part of parts) {
       if (part.inlineData) {
         imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
-      if (part.text) {
-        description = part.text;
       }
     }
 
@@ -79,14 +118,14 @@ Do NOT include any text or words in the image. Clean composition, harmonious col
     }
 
     return new Response(
-      JSON.stringify({ imageUrl, description }),
+      JSON.stringify({ imageUrl, description: "" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("generate-cover error:", e);
+    console.error("Gemini flash fallback error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "未知错误" }),
+      JSON.stringify({ error: "图片生成失败" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}
