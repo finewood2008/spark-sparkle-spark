@@ -526,7 +526,6 @@ export default function ContentCard({ item: itemProp, onAction }: ContentCardPro
             <button onClick={() => setEditDialogOpen(true)} className="content-card-btn">
               <Pencil size={13} /> 编辑
             </button>
-            </button>
             <button onClick={handlePolish} disabled={!!aiLoading} className="content-card-btn text-spark-orange">
               {aiLoading === 'polish' ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {aiLoading === 'polish' ? '润色中...' : '润色'}
