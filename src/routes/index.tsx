@@ -1,26 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import SparkSidebar from "../components/SparkSidebar";
+import SparkAssistant from "../components/SparkAssistant";
+import StudioPage from "../pages/StudioPage";
+import DashboardPage from "../pages/DashboardPage";
+import MemoryPage from "../pages/MemoryPage";
+import SettingsPage from "../pages/SettingsPage";
+import { useAppStore } from "../store/appStore";
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "火花自动版 - AI社媒图文自动化工具" },
+      { name: "description", content: "火花自动版：AI驱动的社交媒体内容创作与自动化平台" },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function Index() {
+  const { activeTab } = useAppStore();
+
+  const renderPage = () => {
+    switch (activeTab) {
+      case 'studio': return <StudioPage />;
+      case 'dashboard': return <DashboardPage />;
+      case 'memory': return <MemoryPage />;
+      case 'settings': return <SettingsPage />;
+      default: return <StudioPage />;
+    }
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="/placeholder.svg"
-        alt="Your app will live here!"
-      />
+    <div className="flex h-screen bg-background overflow-hidden">
+      <SparkSidebar />
+      <main className="flex-1 min-w-0 overflow-hidden">
+        {renderPage()}
+      </main>
+      <SparkAssistant />
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
