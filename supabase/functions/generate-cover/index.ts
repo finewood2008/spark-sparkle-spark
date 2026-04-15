@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Models to try in order for image generation
+const IMAGE_MODELS = [
+  "gemini-2.0-flash-preview-image-generation",
+  "gemini-2.0-flash-exp-image-generation", 
+  "gemini-2.5-flash-preview-native-audio-dialog",
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -20,53 +27,64 @@ serve(async (req) => {
       platform === "wechat" ? "微信公众号" :
       platform === "douyin" ? "抖音" : "社交媒体";
 
-    const prompt = `A beautiful cover image for a social media article titled "${title}". ${(content || "").substring(0, 150)}. Style: ${style || "Modern, clean, vibrant colors"}. No text in the image. Clean composition, harmonious colors, visually striking.`;
+    const prompt = `Generate an image: A beautiful cover photo for a ${platformName} social media article titled "${title}". ${(content || "").substring(0, 150)}. Style: ${style || "Modern, clean, vibrant colors, professional photography style"}. Do NOT include any text or letters in the image. Clean composition, harmonious colors, visually striking hero image.`;
 
-    // Use Imagen 3 via Gemini API
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_KEY}`;
+    let lastError = "";
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: "1:1",
-        },
-      }),
-    });
+    for (const model of IMAGE_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
+      
+      console.log(`Trying model: ${model}`);
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+          },
+        }),
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "请求过于频繁，请稍后再试" }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const t = await response.text();
+        console.error(`Model ${model} error:`, response.status, t);
+        lastError = t;
+        continue; // Try next model
+      }
+
+      const result = await response.json();
+      const parts = result.candidates?.[0]?.content?.parts || [];
+      let imageUrl = "";
+
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+
+      if (imageUrl) {
+        console.log(`Success with model: ${model}`);
         return new Response(
-          JSON.stringify({ error: "请求过于频繁，请稍后再试" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ imageUrl, description: "" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const t = await response.text();
-      console.error("Image gen error:", response.status, t);
 
-      // Fallback: try gemini-2.0-flash with generateContent
-      console.log("Falling back to gemini-2.0-flash generateContent...");
-      return await tryGeminiFlash(GEMINI_KEY, prompt, corsHeaders);
+      console.log(`Model ${model} returned no image`);
     }
 
-    const result = await response.json();
-    const predictions = result.predictions || [];
-
-    if (predictions.length === 0 || !predictions[0].bytesBase64Encoded) {
-      return new Response(
-        JSON.stringify({ error: "未能生成图片，请重试" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const imageUrl = `data:image/png;base64,${predictions[0].bytesBase64Encoded}`;
-
+    console.error("All models failed. Last error:", lastError);
     return new Response(
-      JSON.stringify({ imageUrl, description: "" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "图片生成失败，请稍后重试" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
     console.error("generate-cover error:", e);
@@ -76,56 +94,3 @@ serve(async (req) => {
     );
   }
 });
-
-async function tryGeminiFlash(apiKey: string, prompt: string, corsHeaders: Record<string, string>) {
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("Gemini flash fallback error:", response.status, t);
-      return new Response(
-        JSON.stringify({ error: `图片生成失败 (${response.status})` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const result = await response.json();
-    const parts = result.candidates?.[0]?.content?.parts || [];
-    let imageUrl = "";
-
-    for (const part of parts) {
-      if (part.inlineData) {
-        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
-    }
-
-    if (!imageUrl) {
-      return new Response(
-        JSON.stringify({ error: "未能生成图片，请重试" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ imageUrl, description: "" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (e) {
-    console.error("Gemini flash fallback error:", e);
-    return new Response(
-      JSON.stringify({ error: "图片生成失败" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-}
