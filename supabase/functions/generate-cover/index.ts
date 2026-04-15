@@ -6,8 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -23,27 +21,22 @@ serve(async (req) => {
       platform === "douyin" ? "抖音" : "社交媒体";
 
     const prompt = `Generate a beautiful cover image for a ${platformName} social media article.
-
 Title: ${title}
 Content summary: ${(content || "").substring(0, 200)}
+Style: ${style || "Modern, clean, vibrant colors, suitable for social media"}
+Do NOT include any text or words in the image. Clean composition, harmonious colors.`;
 
-Requirements:
-- Style: ${style || "Modern, clean, vibrant colors, suitable for social media"}
-- Visually striking, suitable as a hero/cover image
-- Do NOT include any text or words in the image
-- Clean composition, harmonious colors
-- Square or vertical aspect ratio suitable for ${platformName}`;
+    // Use native Gemini API with gemini-2.0-flash-exp for image generation
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_KEY}`;
 
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${GEMINI_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gemini-2.0-flash-exp",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
       }),
     });
 
@@ -63,8 +56,20 @@ Requirements:
     }
 
     const result = await response.json();
-    const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const text = result.choices?.[0]?.message?.content || "";
+    
+    // Extract image from native Gemini response
+    const parts = result.candidates?.[0]?.content?.parts || [];
+    let imageUrl = "";
+    let description = "";
+
+    for (const part of parts) {
+      if (part.inlineData) {
+        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+      if (part.text) {
+        description = part.text;
+      }
+    }
 
     if (!imageUrl) {
       return new Response(
@@ -74,7 +79,7 @@ Requirements:
     }
 
     return new Response(
-      JSON.stringify({ imageUrl, description: text }),
+      JSON.stringify({ imageUrl, description }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
