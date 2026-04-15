@@ -249,8 +249,73 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
     }
     setCoverLoading(false);
   };
+  const handleRegenerateTitle = async () => {
+    setTitleLoading(true);
+    try {
+      const currentContent = editing ? editContent : item.content;
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: `请根据以下文章内容，重新生成一个吸引人的标题。只返回标题文字，不要任何解释或引号：\n\n${currentContent.substring(0, 500)}` }],
+          mode: 'chat',
+          platform: item.platform,
+        }),
+      });
 
-  const handleSave = () => {
+      if (!resp.ok) {
+        toast.error('标题生成失败');
+        setTitleLoading(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      let newTitle = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const json = JSON.parse(line.slice(6));
+                const delta = json.choices?.[0]?.delta?.content;
+                if (delta) newTitle += delta;
+              } catch {}
+            }
+          }
+        }
+      }
+
+      newTitle = newTitle.trim().replace(/^["'""'']+|["'""'']+$/g, '');
+      if (newTitle) {
+        if (editing) {
+          setEditTitle(newTitle);
+        }
+        const updated = contents.map(c =>
+          c.id === item.id
+            ? { ...c, title: newTitle, updatedAt: new Date().toISOString() }
+            : c
+        );
+        setContents(updated);
+        toast.success('标题已更新');
+      } else {
+        toast.error('未能生成新标题');
+      }
+    } catch {
+      toast.error('标题生成失败');
+    }
+    setTitleLoading(false);
+  };
+
+
     const updated = contents.map(c =>
       c.id === item.id
         ? { ...c, title: editTitle, content: editContent, updatedAt: new Date().toISOString() }
