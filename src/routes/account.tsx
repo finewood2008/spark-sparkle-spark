@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { Flame, ArrowLeft, User, Camera, MessageSquare, Github, Building2, Globe, Link2, Unlink, Loader2, Check, LogOut } from 'lucide-react';
+import { Flame, ArrowLeft, User, Camera, MessageSquare, Github, Building2, Globe, Link2, Unlink, Loader2, Check, LogOut, Palette, PenLine, Save, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { getBindingStatus, bindThirdPartyAccount, unbindThirdPartyAccount, type BindingStatus, type SocialProvider } from '@/services/authService';
 import { toast } from 'sonner';
