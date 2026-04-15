@@ -4,6 +4,7 @@ import { Flame, ArrowLeft, User, Camera, MessageSquare, Github, Building2, Globe
 import { useAuthStore } from '@/store/authStore';
 import { getBindingStatus, bindThirdPartyAccount, unbindThirdPartyAccount, type BindingStatus, type SocialProvider } from '@/services/authService';
 import { toast } from 'sonner';
+import { type UserPreferences, defaultPrefs, loadUserPrefs, saveUserPrefs } from '@/lib/user-prefs';
 
 export const Route = createFileRoute('/account')({
   head: () => ({
@@ -22,31 +23,6 @@ const providerIcons: Record<string, React.ReactNode> = {
   google: <Globe size={20} />,
 };
 
-interface UserPreferences {
-  defaultPlatform: 'xiaohongshu' | 'wechat' | 'douyin';
-  writingStyle: string;
-  writingTone: string;
-  signature: string;
-}
-
-const defaultPrefs: UserPreferences = {
-  defaultPlatform: 'xiaohongshu',
-  writingStyle: '专业严谨',
-  writingTone: '友好亲切',
-  signature: '',
-};
-
-function loadPrefs(): UserPreferences {
-  try {
-    const s = localStorage.getItem('spark-user-prefs');
-    return s ? { ...defaultPrefs, ...JSON.parse(s) } : defaultPrefs;
-  } catch { return defaultPrefs; }
-}
-
-function savePrefs(p: UserPreferences) {
-  localStorage.setItem('spark-user-prefs', JSON.stringify(p));
-}
-
 function AccountPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -61,7 +37,7 @@ function AccountPage() {
       return;
     }
     getBindingStatus(user!.id).then(setBindings);
-    setPrefs(loadPrefs());
+    setPrefs(loadUserPrefs());
   }, [isAuthenticated, navigate, user]);
 
   const handleBind = async (provider: SocialProvider) => {
@@ -265,7 +241,7 @@ function AccountPage() {
             {/* Save */}
             <button
               onClick={() => {
-                savePrefs(prefs);
+                saveUserPrefs(prefs);
                 setPrefsSaved(true);
                 setTimeout(() => setPrefsSaved(false), 2000);
               }}
