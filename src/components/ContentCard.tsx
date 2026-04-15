@@ -446,7 +446,13 @@ export default function ContentCard({ item, onAction }: ContentCardProps) {
               className="content-card-btn text-spark-orange"
             >
               {coverLoading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-              {coverLoading ? '生成中...' : item.coverImage ? '换配图' : '生成配图'}
+              {coverLoading ? '生成中...' : 'AI配图'}
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="content-card-btn"
+            >
+              <ImageUp size={13} /> 上传封面
             </button>
             <button onClick={() => onAction?.('restyle', item)} className="content-card-btn">
               <Palette size={13} /> 换风格
