@@ -56,6 +56,42 @@ serve(async (req) => {
         systemPrompt = `你是专业的${platformName}内容运营。请根据以下内容生成一条有号召力的 CTA（行动号召语），直接返回文本。${brandContext || ""}`;
         userPrompt = fullContent || text;
         break;
+      case "learn_from_edit": {
+        // Non-streaming: analyze diff between original and edited content
+        const learnPrompt = `你是内容创作助手的学习模块。用户修改了AI生成的内容，请分析修改差异并总结用户的写作偏好。
+
+原始内容：
+${text}
+
+用户修改后：
+${fullContent}
+
+请用JSON格式返回1-3条偏好洞察，每条不超过20字，格式：
+{"insights":["偏好1","偏好2"]}
+
+只返回JSON，不要其他文字。`;
+
+        const learnResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [{ role: "user", content: learnPrompt }],
+          }),
+        });
+
+        if (!learnResp.ok) {
+          return new Response(JSON.stringify({ error: "分析失败" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const learnResult = await learnResp.json();
+        const raw = learnResult.choices?.[0]?.message?.content || "{}";
+        return new Response(JSON.stringify({ raw }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       default:
         systemPrompt = `你是专业的${platformName}内容编辑。请按用户要求处理文本。${brandContext || ""}`;
         userPrompt = text;
