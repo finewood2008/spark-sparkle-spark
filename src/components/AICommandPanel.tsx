@@ -30,7 +30,7 @@ export default function AICommandPanel() {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
-  const [genPlatform, setGenPlatform] = useState<Platform>('xiaohongshu');
+  const [genPlatform, setGenPlatform] = useState<Platform>(() => loadUserPrefs().defaultPlatform as Platform);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
